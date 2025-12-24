@@ -28,29 +28,35 @@ export const uploadDocumentsToDocSet = async (params: IDocumentServiceParams): P
   const url = "url here"; // Replace with actual URL
   const extWeb = Web([sp.web, url]);
 
-  // Document Set name is the projectId
-  // Path structure: List/path/projectId (Document Set)/files
-  const docSetPath = `${list}/${path}/${projectId}`;
+  // 1. Resolve the List Root Folder Path to ensure we have the correct URL (Title != URL sometimes)
+  const listObj = extWeb.lists.getByTitle(list);
+  const listRootFolder = await listObj.rootFolder.select("ServerRelativeUrl")();
+  const listRootUrl = listRootFolder.ServerRelativeUrl;
+  
+  // Clean up path separators just in case (remove leading/trailing slashes)
+  const cleanPath = path.replace(/^\/|\/$/g, "");
+  
+  // Construct the full Server Relative Path for the Document Set
+  const docSetPath = `${listRootUrl}/${cleanPath}/${projectId}`;
 
-  // Check if document set exists
+  // 2. Check if document set exists
   let docSetExists = false;
   try {
+    // We expect this to throw 404 if it doesn't exist, which is fine
     await extWeb.getFolderByServerRelativePath(docSetPath)();
     docSetExists = true;
   } catch (e) {
+    // console.log("Document Set does not exist, will create.");
     docSetExists = false;
   }
 
-  // If it doesn't exist, create the Document Set
+  // 3. If it doesn't exist, create the Document Set
   if (!docSetExists) {
     // Create the Document Set folder (recursively creates path if needed)
-    // using addUsingPath handles both checking and creating
+    // using addUsingPath handles both checking and creating from the web root context if we provide SRP
     await extWeb.folders.addUsingPath(docSetPath);
     
     // Get the Document Set content type from the list
-    const listObj = extWeb.lists.getByTitle(list);
-    
-    // In PnPjs v4, contentTypes is a sub-collection accessed via the .contentTypes property
     const contentTypes = await listObj.contentTypes();
     const docSetContentType = contentTypes.find(ct => ct.Name === "Document Set");
 
@@ -74,7 +80,6 @@ export const uploadDocumentsToDocSet = async (params: IDocumentServiceParams): P
     });
   } else if (attachments.length > 0) {
     // If it exists, update metadata from the latest batch
-    const listObj = extWeb.lists.getByTitle(list);
     const docSetFolder = extWeb.getFolderByServerRelativePath(docSetPath);
     const docSetItem = await docSetFolder.listItemAllFields();
     const firstAttachment = attachments[0];
@@ -85,7 +90,7 @@ export const uploadDocumentsToDocSet = async (params: IDocumentServiceParams): P
     });
   }
 
-  // Upload attachments to the document set
+  // 4. Upload attachments to the document set
   for (const attachment of attachments) {
     await extWeb.getFolderByServerRelativePath(docSetPath).files.addUsingPath(attachment.name, attachment.content, { Overwrite: true });
   }
