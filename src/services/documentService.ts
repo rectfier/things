@@ -21,20 +21,47 @@ export interface IDocumentServiceParams {
   path: string;
 }
 
+let url = "url here";
+
 export const uploadDocumentsToDocSet = async (params: IDocumentServiceParams): Promise<void> => {
   const { sp, projectId, attachments, list, path } = params;
 
   // External Web
-  const url = "url here"; // Replace with actual URL
   const extWeb = Web([sp.web, url]);
 
   // Get Library info with select and expand
   const extLib = extWeb.lists.getByTitle(list);
   const libInfo = await extLib.select("Title", "RootFolder/ServerRelativeUrl").expand("RootFolder")();
 
-  // Build libRootUrl and docSetPath
+  // Build libRootUrl
   const libRootUrl = libInfo.RootFolder.ServerRelativeUrl;
-  const docSetPath = `${libRootUrl}/${path}/${projectId}`;
+
+  // If path is provided, ensure the folder exists first
+  let parentFolderUrl = libRootUrl;
+  if (path && path.trim() !== "") {
+    const pathFolderUrl = `${libRootUrl}/${path}`;
+    
+    // Check if path folder exists
+    let pathExists = false;
+    try {
+      await extWeb.getFolderByServerRelativePath(pathFolderUrl)();
+      pathExists = true;
+    } catch {
+      pathExists = false;
+    }
+
+    // If path folder doesn't exist, create it
+    if (!pathExists) {
+      const libRootFolder = extWeb.getFolderByServerRelativePath(libRootUrl);
+      await libRootFolder.addSubFolderUsingPath(path);
+    }
+
+    // Now the parent folder is the path folder
+    parentFolderUrl = pathFolderUrl;
+  }
+
+  // Build docSetPath
+  const docSetPath = `${parentFolderUrl}/${projectId}`;
 
   // Check if doc set exists
   let exists = false;
@@ -46,9 +73,9 @@ export const uploadDocumentsToDocSet = async (params: IDocumentServiceParams): P
   }
 
   if (!exists) {
-    // Create the folder using the library root path
-    const libRootFolder = extWeb.getFolderByServerRelativePath(libRootUrl);
-    await libRootFolder.addSubFolderUsingPath(`${path}/${projectId}`);
+    // Create the doc set folder inside the parent folder
+    const parentFolder = extWeb.getFolderByServerRelativePath(parentFolderUrl);
+    await parentFolder.addSubFolderUsingPath(projectId);
 
     // Get the created folder's list item and set Title and ContentTypeId
     const newFolder = extWeb.getFolderByServerRelativePath(docSetPath);
