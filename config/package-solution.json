@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "stupid-sharepoint-again-client-side-solution",
+    "id": "f6ee5f0c-3747-45f3-9ea4-ca559f652f88",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.20.0"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "stupid-sharepoint-again description"
+      },
+      "longDescription": {
+        "default": "stupid-sharepoint-again description"
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "stupid-sharepoint-again Feature",
+        "description": "The feature that activates elements of the stupid-sharepoint-again solution.",
+        "id": "ea43e0a0-e641-412a-a91a-7240a7923c38",
+        "version": "1.0.0.0"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/stupid-sharepoint-again.sppkg"
+  }
+}
